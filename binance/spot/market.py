@@ -5,7 +5,8 @@ from binance.lib.utils import (
     convert_list_to_json_array,
 )
 from binance.lib.utils import check_required_parameters
-
+import datetime
+import pandas as pd
 
 def ping(self):
     """Test Connectivity
@@ -151,6 +152,52 @@ def klines(self, symbol: str, interval: str, **kwargs):
 
     params = {"symbol": symbol, "interval": interval, **kwargs}
     return self.query("/api/v3/klines", params)
+
+
+def second_to_mil(timestamp):
+    return  str(int(timestamp) * 1000)
+
+
+def get_data(self, symbol: str, interval: str, start: datetime.datetime, end: datetime.datetime):
+    import time
+    timeDic = {"10s": 10, "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 4 * 3600,
+                        "8h": 8 * 3600, "1d": 24 * 3600, "1w": 7 * 24 * 3600} 
+    kReturnMax = 1000
+    e = time.mktime(end.timetuple())
+    s = time.mktime(end.timetuple())
+    startTimeStamp = time.mktime(start.timetuple())
+    seconds = timeDic[interval]
+    dataList = []
+    while s > startTimeStamp:
+        num = min(int((e - startTimeStamp) / seconds), kReturnMax)
+        num = max(1, num)  # if num is zero, then u cannot break this fucking loop
+        s = e - seconds * num
+        tmp = pd.DataFrame(self.klines(symbol, interval, startTime=second_to_mil(s), endTime=second_to_mil(e)))  # okex timestamp need * 1000
+        e = s
+        dataList.append(tmp) # 最后一个是无用的
+        time.sleep(0.1)  # 防止过于频繁
+    c = pd.concat(dataList)
+    c.drop_duplicates(inplace=True)
+    try:
+        c.columns = ["Open time", "open", "high", "low", "close", "Volume", \
+                     "Close time", "Quote asset volume", "Number of trades", \
+                         "Taker buy base asset volume", "Taker buy quote asset volume", "Ignore"]
+    except:
+        print(c)
+        print(e - startTimeStamp)
+    c = c.astype("float")
+    print(c.loc[1,"Open time"])
+    c["time"] = (c["Open time"] / 1000).apply(BeiJingFromTimeStamp)
+    print(c.loc[1, "time"])
+    c = c.set_index("time")
+    c = c.sort_values(by="time")
+    return c[c.columns[:-1]]
+
+
+def BeiJingFromTimeStamp(timestamp, hours=0):
+    dt = datetime.datetime.utcfromtimestamp(timestamp)
+    dt = dt + datetime.timedelta(hours=hours)  # 中国默认时区 8
+    return dt
 
 
 def avg_price(self, symbol: str):

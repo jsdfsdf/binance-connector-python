@@ -20,6 +20,8 @@ class Spot(API):
     from binance.spot.market import ticker_24hr
     from binance.spot.market import ticker_price
     from binance.spot.market import book_ticker
+    from binance.spot.market import get_data
+
 
     # ACCOUNT(including orders and trades)
     from binance.spot.account import new_order_test
