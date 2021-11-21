@@ -172,7 +172,7 @@ def get_data(self, symbol: str, interval: str, start: datetime.datetime, end: da
         num = min(int((e - startTimeStamp) / seconds), kReturnMax)
         num = max(1, num)  # if num is zero, then u cannot break this fucking loop
         s = e - seconds * num
-        tmp = pd.DataFrame(self.klines(symbol, interval, startTime=second_to_mil(s), endTime=second_to_mil(e)))  # okex timestamp need * 1000
+        tmp = pd.DataFrame(self.klines(symbol, interval, startTime=second_to_mil(s), endTime=second_to_mil(e), limit=1000))  # okex timestamp need * 1000
         e = s
         dataList.append(tmp) # 最后一个是无用的
         time.sleep(0.1)  # 防止过于频繁
@@ -186,9 +186,9 @@ def get_data(self, symbol: str, interval: str, start: datetime.datetime, end: da
         print(c)
         print(e - startTimeStamp)
     c = c.astype("float")
-    print(c.loc[1,"Open time"])
+    # print(c.loc[1,"Open time"])
     c["time"] = (c["Open time"] / 1000).apply(BeiJingFromTimeStamp)
-    print(c.loc[1, "time"])
+    # print(c.loc[1, "time"])
     c = c.set_index("time")
     c = c.sort_values(by="time")
     return c[c.columns[:-1]]
